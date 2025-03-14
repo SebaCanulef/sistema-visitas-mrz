@@ -1,0 +1,24 @@
+# Archivos de Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+*.egg
+
+# Entornos virtuales
+venv/
+env/
+.env
+
+# Base de datos
+db.sqlite3
+
+# Archivos generados por Django
+staticfiles/
+*.log
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db

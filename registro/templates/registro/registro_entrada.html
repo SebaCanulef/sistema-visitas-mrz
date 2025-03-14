@@ -1,0 +1,63 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Entrada</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <div class="container">
+        <h2>Datos del Visitante</h2>
+        <div class="form-container">
+            <form method="post" action="{% url 'registro_entrada' %}">
+                {% csrf_token %}
+                <table class="left-align">
+                    <tr>
+                        <th>Campo</th>
+                        <th>Valor</th>
+                    </tr>
+                    <tr>
+                        <td>Nombre</td>
+                        <td>{{ visitante.nombre }}</td>
+                    </tr>
+                    <tr>
+                        <td>Apellido Paterno</td>
+                        <td>{{ visitante.apellido1 }}</td>
+                    </tr>
+                    <tr>
+                        <td>Apellido Materno</td>
+                        <td>{{ visitante.apellido2 }}</td>
+                    </tr>
+                    <tr>
+                        <td>RUT</td>
+                        <td>{{ visitante.rut }}</td>
+                    </tr>
+                    <tr>
+                        <td>Fecha de la Visita</td>
+                        <td>{{ fecha|date:"d \d\e F \d\e Y" }}</td>
+                    </tr>
+                    <tr>
+                        <td>Hora de la Visita</td>
+                        <td>{{ hora|time:"H:i" }}</td>
+                    </tr>
+                    <tr>
+                        <td>Categoría</td>
+                        <td>
+                            <select name="tipo_visita" id="tipo_visita" required>
+                                <option value="">Seleccione una categoría</option>
+                                {% for tipo in tipos_visita %}
+                                    <option value="{{ tipo.id }}">{{ tipo.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                    </tr>
+                </table>
+                <button type="submit">Continuar</button><p></p>
+            </form>
+            <a href="{% url 'index' %}" class="btn">Regresar</a>
+        </div>
+    </div>
+</body>
+</html>

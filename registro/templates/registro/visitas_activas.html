@@ -1,0 +1,59 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visitas Activas</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <div class="container">
+        <h2>Visitas Activas</h2>
+        {% if visitas %}
+            <table>
+                <tr>
+                    <th>Visitante</th>
+                    <th>RUT</th>
+                    <th>Tipo Visita</th>
+                    <th>Empresa</th>
+                    <th>Colaborador</th>
+                    <th>Ubicación</th>
+                    <th>Fecha</th>
+                    <th>Hora Entrada</th>
+                    <th>Acción</th>
+                </tr>
+                {% for visita in visitas %}
+                    <tr>
+                        <td>{{ visita.visitante.nombre }} {{ visita.visitante.apellido1 }} {{ visita.visitante.apellido2 }}</td>
+                        <td>{{ visita.visitante.rut }}</td>
+                        <td>{{ visita.tipo_visita.nombre }}</td>
+                        <td>{{ visita.empresa.nombre|default:'-' }}</td>
+                        <td>{{ visita.colaborador.nombre|default:'-' }} {% if visita.colaborador %}({{ visita.colaborador.rut }}){% endif %}</td>
+                        <td>{{ visita.ubicacion.nombre|default:'-' }}</td>
+                        <td>{{ visita.fecha|date:"d/m/Y" }}</td>
+                        <td>{{ visita.hora_entrada|time:"H:i" }}</td>
+                        <td>
+                            <form method="post">
+                                {% csrf_token %}
+                                <input type="hidden" name="visita_id" value="{{ visita.id }}">
+                                <button type="submit">Finalizar</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </table>
+        {% else %}
+            <div class="form-container">
+                <table>
+                    <tr>
+                        <th>Mensaje</th>
+                        <td>No hay visitas activas.</td>
+                    </tr>
+                </table>
+            </div>
+        {% endif %}
+        <p><a href="{% url 'index' %}" class="btn">Regresar</a></p>
+    </div>
+</body>
+</html>

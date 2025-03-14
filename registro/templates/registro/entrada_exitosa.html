@@ -1,0 +1,56 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entrada Registrada</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <div class="container">
+        <h2>¡Visita Registrada Exitosamente!</h2>
+        <div class="form-container">
+            <table class="left-align">
+                <tr>
+                    <th>Campo</th>
+                    <th>Valor</th>
+                </tr>
+                <tr>
+                    <td>Visitante</td>
+                    <td>{{ visita.visitante.nombre }} {{ visita.visitante.apellido1 }} {{ visita.visitante.apellido2 }}</td>
+                </tr>
+                <tr>
+                    <td>Tipo de Visita</td>
+                    <td>{{ visita.tipo_visita.nombre }}</td>
+                </tr>
+                {% if visita.empresa %}
+                <tr>
+                    <td>Empresa</td>
+                    <td>{{ visita.empresa.nombre }}</td>
+                </tr>
+                {% endif %}
+                {% if visita.colaborador %}
+                <tr>
+                    <td>Colaborador</td>
+                    <td>{{ visita.colaborador.nombre }} ({{ visita.colaborador.rut }})</td>
+                </tr>
+                {% endif %}
+                <tr>
+                    <td>Ubicación</td>
+                    <td>{{ visita.ubicacion.nombre }}</td>
+                </tr>
+                <tr>
+                    <td>Fecha</td>
+                    <td>{{ visita.fecha|date:"d \d\e F \d\e Y" }}</td>
+                </tr>
+                <tr>
+                    <td>Hora de Entrada</td>
+                    <td>{{ visita.hora_entrada|time:"H:i" }}</td>
+                </tr>
+            </table>
+            <p></p><a href="{% url 'index' %}" class="btn">Inicio</a>
+        </div>
+    </div>
+</body>
+</html>

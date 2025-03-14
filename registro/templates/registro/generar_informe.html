@@ -1,0 +1,99 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generar Informe</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <div class="container">
+        <h2>Generar Informe de Visitas</h2>
+        <div class="form-container">
+            <form method="post" action="{% url 'generar_informe' %}">
+                {% csrf_token %}
+                <table class="left-align">
+                    <tr>
+                        <th>Campo</th>
+                        <th>Valor</th>
+                    </tr>
+                    <tr>
+                        <td>RUT del Visitante</td>
+                        <td>
+                            <input type="text" name="rut" id="rut" placeholder="Ej: 12345678-9">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Tipo de Visita</td>
+                        <td>
+                            <select name="tipo_visita" id="tipo_visita">
+                                <option value="">Todos</option>
+                                {% for tipo in tipos_visita %}
+                                    <option value="{{ tipo.id }}">{{ tipo.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Empresa</td>
+                        <td>
+                            <select name="empresa" id="empresa">
+                                <option value="">Todas</option>
+                                {% for empresa in empresas %}
+                                    <option value="{{ empresa.id }}">{{ empresa.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Colaborador</td>
+                        <td>
+                            <select name="colaborador" id="colaborador">
+                                <option value="">Todos</option>
+                                {% for colab in colaboradores %}
+                                    <option value="{{ colab.id }}">{{ colab.nombre }} ({{ colab.rut }})</option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Ubicación</td>
+                        <td>
+                            <select name="ubicacion" id="ubicacion">
+                                <option value="">Todas</option>
+                                {% for ubicacion in ubicaciones %}
+                                    <option value="{{ ubicacion.id }}">{{ ubicacion.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Fecha Inicio</td>
+                        <td>
+                            <input type="date" name="fecha_inicio" id="fecha_inicio" required>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Fecha Fin</td>
+                        <td>
+                            <input type="date" name="fecha_fin" id="fecha_fin" required>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Formato</td>
+                        <td>
+                            <select name="formato" id="formato" required>
+                                <option value="excel">Excel</option>
+                                <option value="pdf">PDF</option>
+                            </select>
+                        </td>
+                    </tr>
+                </table>
+                <button type="submit">Descargar Informe</button>
+            </form>
+            <p></p><a href="{% url 'index' %}" class="btn">Regresar</a>
+        </div>
+    </div>
+</body>
+</html>

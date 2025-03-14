@@ -1,0 +1,58 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Selección de Colaborador</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <div class="container">
+        <h2>Seleccione Colaborador</h2>
+        <div class="form-container">
+            <form method="post" action="{% url 'guardar_visita' %}">
+                {% csrf_token %}
+                <table class="left-align">
+                    <tr>
+                        <th>Campo</th>
+                        <th>Valor</th>
+                    </tr>
+                    <tr>
+                        <td>Visitante</td>
+                        <td>{{ visitante.nombre }} {{ visitante.apellido1 }} {{ visitante.apellido2 }}</td>
+                    </tr>
+                    <tr>
+                        <td>Tipo de Visita</td>
+                        <td>{{ tipo_visita.nombre }}</td>
+                    </tr>
+                    <tr>
+                        <td>Colaborador</td>
+                        <td>
+                            <select name="colaborador" id="colaborador" required>
+                                <option value="">Seleccione un colaborador</option>
+                                {% for colab in colaboradores %}
+                                    <option value="{{ colab.id }}">{{ colab.nombre }} ({{ colab.rut }})</option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Ubicación</td>
+                        <td>
+                            <select name="ubicacion" id="ubicacion" required>
+                                <option value="">Seleccione una ubicación</option>
+                                {% for ubicacion in ubicaciones %}
+                                    <option value="{{ ubicacion.id }}">{{ ubicacion.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                    </tr>
+                </table>
+                <button type="submit">Registrar Visita</button><p></p>
+            </form>
+            <a href="{% url 'registro_entrada' %}" class="btn">Regresar</a>
+        </div>
+    </div>
+</body>
+</html>
