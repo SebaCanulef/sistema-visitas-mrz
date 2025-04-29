@@ -7,23 +7,109 @@
     <title>Captura de MRZ</title>
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <style>
-        video { border-radius: 10px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); }
-        .button-container { display: flex; justify-content: center; gap: 20px; margin-top: 20px; }
-        .capture-container { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 30px;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        h2 {
+            font-size: 26px;
+            margin-bottom: 20px;
+        }
+
+        video {
+            width: 100%;
+            max-width: 640px;
+            height: auto;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .capture-container {
+            margin-bottom: 30px;
+        }
+
+        .capture-container button {
+            width: 100%;
+            padding: 14px 0;
+            font-size: 16px;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .capture-container button:hover {
+            background-color: #0056b3;
+        }
+
+        .button-container {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .button-container .btn {
+            flex: 1;
+            text-align: center;
+            padding: 14px 0;
+            font-size: 16px;
+            border-radius: 6px;
+            color: white;
+            text-decoration: none;
+            transition: background-color 0.3s ease;
+        }
+
+        .btn-left {
+            background-color: #007bff;
+        }
+        .btn-left:hover {
+            background-color: #0056b3;
+        }
+
+        .btn-right {
+            background-color: #28a745;
+        }
+        .btn-right:hover {
+            background-color: #1e7e34;
+        }
+
+        @media (max-width: 600px) {
+            .button-container {
+                flex-direction: column;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h2>Escanea tu documento</h2>
+
         <div class="capture-container">
-            <video id="video" width="640" height="480" autoplay></video>
+            <video id="video" autoplay></video>
             <canvas id="canvas" style="display: none;"></canvas>
             <button onclick="captureImage()">Capturar Imagen</button>
         </div>
 
         <div class="button-container">
-            <a href="{% url 'generar_informe' %}" class="btn">Generar Informe</a>
-            <a href="{% url 'visitas_activas' %}" class="btn">Ver Visitas Activas</a>
+            <a href="{% url 'generar_informe' %}" class="btn btn-left">Generar Informe</a>
+            <a href="{% url 'visitas_activas' %}" class="btn btn-right">Ver Visitas Activas</a>
         </div>
 
         <form id="form" method="post" action="{% url 'captura_imagen' %}">
@@ -52,10 +138,9 @@
             form.submit();
         }
 
-        // Captura con la barra espaciadora
         document.addEventListener('keydown', function(event) {
             if (event.code === 'Space') {
-                event.preventDefault(); // Evita que la página se desplace
+                event.preventDefault();
                 captureImage();
             }
         });

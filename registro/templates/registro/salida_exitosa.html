@@ -5,19 +5,140 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Salida Registrada</title>
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2e28a7;
+            --primary-dark: #100c6b;
+            --bg: #f4f6f8;
+            --text-dark: #2c3e50;
+            --text-light: #7f8c8d;
+            --white: #ffffff;
+            --gray: #f1f1f1;
+            --shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+            --radius: 12px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--bg);
+            color: var(--text-dark);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 700px;
+            background-color: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 40px 30px;
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 1.8rem;
+            color: var(--text-dark);
+        }
+
+        .form-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        .static-text {
+            padding: 10px;
+            background-color: var(--gray);
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .btn {
+            padding: 14px;
+            font-size: 1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            color: var(--white);
+            background-color: var(--primary);
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        .btn:hover {
+            background-color: var(--primary-dark);
+        }
+    </style>
 </head>
 <body>
     <div class="container">
         <h2>¡Salida Registrada Exitosamente!</h2>
         <div class="form-container">
-            <table>
-                <tr>
-                    <th>Mensaje</th>
-                    <td>Gracias por tu visita.</td>
-                </tr>
-            </table>
-            <p></p><a href="{% url 'index' %}" class="btn">Regresar</a>
+
+            <div class="form-group">
+                <label>Visitante</label>
+                <div class="static-text">{{ visita.visitante.nombre }} {{ visita.visitante.apellido1 }} {{ visita.visitante.apellido2 }}</div>
+            </div>
+
+            <div class="form-group">
+                <label>Tipo de Visita</label>
+                <div class="static-text">{{ visita.tipo_visita.nombre }}</div>
+            </div>
+
+            {% if visita.empresa %}
+            <div class="form-group">
+                <label>Empresa</label>
+                <div class="static-text">{{ visita.empresa.nombre }}</div>
+            </div>
+            {% endif %}
+
+            {% if visita.colaborador %}
+            <div class="form-group">
+                <label>Colaborador</label>
+                <div class="static-text">{{ visita.colaborador.nombre }} ({{ visita.colaborador.rut }})</div>
+            </div>
+            {% endif %}
+
+            <div class="form-group">
+                <label>Ubicación</label>
+                <div class="static-text">{{ visita.ubicacion.nombre }}</div>
+            </div>
+
+            <div class="form-group">
+                <label>Fecha</label>
+                <div class="static-text">{{ visita.fecha|date:"d \d\e F \d\e Y" }} - {{ visita.hora_entrada|time:"H:i" }}</div>
+            </div>
+
+            <a href="{% url 'index' %}" class="btn">Inicio</a>
+
         </div>
     </div>
 </body>

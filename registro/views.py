@@ -1,14 +1,20 @@
 from django.shortcuts import render, redirect
-from django.utils import timezone
 from django.http import HttpResponse
+from django.utils import timezone
+from django.core.paginator import Paginator
+
 from registro.models import Visitante, Visita, TipoVisita, Empresa, Colaborador, Ubicacion
 from registro.utils import parse_mrz
+
 from io import BytesIO
 import base64
 import pandas as pd
+from datetime import date
+
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 from reportlab.lib import colors
+
 
 def index(request):
     return render(request, 'registro/index.html')
@@ -22,7 +28,6 @@ def captura_imagen(request):
         imagen_bytes = BytesIO(base64.b64decode(imagen_data))
         
         datos_mrz = parse_mrz(imagen_bytes)
-        print("Datos devueltos por parse_mrz:", datos_mrz)
         
         if datos_mrz:
             visitante, creado = Visitante.objects.get_or_create(
@@ -38,7 +43,8 @@ def captura_imagen(request):
             if visita_activa:
                 visita_activa.hora_salida = timezone.now().time()
                 visita_activa.save()
-                return render(request, 'registro/salida_exitosa.html')
+                return render(request, 'registro/salida_exitosa.html', {'visita': visita_activa})
+
             else:
                 request.session['visitante_id'] = visitante.id
                 context = {
@@ -124,31 +130,63 @@ def guardar_visita(request):
         return render(request, 'registro/entrada_exitosa.html', {'visita': visita})
     return redirect('index')
 
+
+from datetime import date
+import pandas as pd
+from django.shortcuts import render
+from django.core.paginator import Paginator
+from django.http import HttpResponse
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+
+from .models import Visita, TipoVisita, Empresa, Colaborador, Ubicacion
+
 def generar_informe(request):
-    if request.method == 'POST':
-        fecha_inicio = request.POST.get('fecha_inicio')
-        fecha_fin = request.POST.get('fecha_fin')
-        rut = request.POST.get('rut')
-        tipo_visita_id = request.POST.get('tipo_visita')
-        empresa_id = request.POST.get('empresa')
-        colaborador_id = request.POST.get('colaborador')
-        ubicacion_id = request.POST.get('ubicacion')
-        formato = request.POST.get('formato')
-        
-        filtros = {'fecha__range': [fecha_inicio, fecha_fin]}
-        if rut:
-            filtros['visitante__rut__icontains'] = rut
-        if tipo_visita_id:
-            filtros['tipo_visita_id'] = tipo_visita_id
-        if empresa_id:
-            filtros['empresa_id'] = empresa_id
-        if colaborador_id:
-            filtros['colaborador_id'] = colaborador_id
-        if ubicacion_id:
-            filtros['ubicacion_id'] = ubicacion_id
-        
-        visitas = Visita.objects.filter(**filtros)
-        data = [{
+    hoy = date.today()
+    filtros = {'fecha': hoy}  # Mostrar visitas del día actual por defecto
+    exportar = False
+
+    # Leer filtros desde GET (o POST si es exportar)
+    data = request.POST if request.method == 'POST' else request.GET
+
+    fecha_inicio = data.get('fecha_inicio')
+    fecha_fin = data.get('fecha_fin')
+    rut = data.get('rut')
+    tipo_visita_id = data.get('tipo_visita')
+    empresa_id = data.get('empresa')
+    colaborador_id = data.get('colaborador')
+    ubicacion_id = data.get('ubicacion')
+    formato = data.get('formato')
+
+    filtros = {}
+
+    # Filtros de fechas mejorados
+    if fecha_inicio and fecha_fin:
+        filtros['fecha__range'] = [fecha_inicio, fecha_fin]
+    elif fecha_inicio:
+        filtros['fecha__gte'] = fecha_inicio
+    elif fecha_fin:
+        filtros['fecha__lte'] = fecha_fin
+
+    # Otros filtros
+    if rut:
+        filtros['visitante__rut__icontains'] = rut
+    if tipo_visita_id:
+        filtros['tipo_visita_id'] = tipo_visita_id
+    if empresa_id:
+        filtros['empresa_id'] = empresa_id
+    if colaborador_id:
+        filtros['colaborador_id'] = colaborador_id
+    if ubicacion_id:
+        filtros['ubicacion_id'] = ubicacion_id
+
+    visitas_qs = Visita.objects.filter(**filtros).order_by('fecha')
+
+    # Exportar Excel o PDF si corresponde
+    if formato in ['excel', 'pdf']:
+        exportar = True
+        data_export = [{
             'Visitante': f"{v.visitante.nombre} {v.visitante.apellido1} {v.visitante.apellido2}",
             'RUT': v.visitante.rut,
             'Tipo Visita': v.tipo_visita.nombre,
@@ -158,20 +196,21 @@ def generar_informe(request):
             'Fecha': v.fecha,
             'Hora Entrada': v.hora_entrada,
             'Hora Salida': v.hora_salida if v.hora_salida else '-'
-        } for v in visitas]
-        
+        } for v in visitas_qs]
+
         if formato == 'excel':
-            df = pd.DataFrame(data)
+            df = pd.DataFrame(data_export)
             response = HttpResponse(content_type='application/vnd.ms-excel')
             response['Content-Disposition'] = 'attachment; filename="informe_visitas.xlsx"'
             df.to_excel(response, index=False)
             return response
+
         elif formato == 'pdf':
             response = HttpResponse(content_type='application/pdf')
             response['Content-Disposition'] = 'attachment; filename="informe_visitas.pdf"'
             doc = SimpleDocTemplate(response, pagesize=letter)
             table_data = [['Visitante', 'RUT', 'Tipo Visita', 'Empresa', 'Colaborador', 'Ubicación', 'Fecha', 'Hora Entrada', 'Hora Salida']]
-            table_data.extend([list(d.values()) for d in data])
+            table_data.extend([list(d.values()) for d in data_export])
             table = Table(table_data)
             table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
@@ -185,14 +224,27 @@ def generar_informe(request):
             ]))
             doc.build([table])
             return response
-    
+
+    # Paginación
+    paginator = Paginator(visitas_qs, 10)  # 10 visitas por página
+    page_number = request.GET.get('page')
+    visitas = paginator.get_page(page_number)
+
+    # Filtros actuales (para mantener en la paginación)
+    filtros_actuales = request.GET.copy()
+    filtros_actuales.pop('page', None)
+    filtros_actuales.pop('formato', None)
+
     context = {
         'tipos_visita': TipoVisita.objects.all(),
         'empresas': Empresa.objects.all(),
         'colaboradores': Colaborador.objects.all(),
-        'ubicaciones': Ubicacion.objects.all()
+        'ubicaciones': Ubicacion.objects.all(),
+        'visitas': visitas,
+        'filtros_actuales': filtros_actuales,
     }
     return render(request, 'registro/generar_informe.html', context)
+
 
 def visitas_activas(request):
     if request.method == 'POST':
