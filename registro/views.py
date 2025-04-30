@@ -142,12 +142,24 @@ from reportlab.lib import colors
 
 from .models import Visita, TipoVisita, Empresa, Colaborador, Ubicacion
 
+from datetime import date
+from django.shortcuts import render
+from django.core.paginator import Paginator
+from django.http import HttpResponse
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+
+import pandas as pd
+from io import BytesIO
+
+from .models import Visita, TipoVisita, Empresa, Colaborador, Ubicacion
+
 def generar_informe(request):
     hoy = date.today()
-    filtros = {'fecha': hoy}  # Mostrar visitas del día actual por defecto
+    filtros = {'fecha': hoy}
     exportar = False
 
-    # Leer filtros desde GET (o POST si es exportar)
     data = request.POST if request.method == 'POST' else request.GET
 
     fecha_inicio = data.get('fecha_inicio')
@@ -161,7 +173,6 @@ def generar_informe(request):
 
     filtros = {}
 
-    # Filtros de fechas mejorados
     if fecha_inicio and fecha_fin:
         filtros['fecha__range'] = [fecha_inicio, fecha_fin]
     elif fecha_inicio:
@@ -169,7 +180,6 @@ def generar_informe(request):
     elif fecha_fin:
         filtros['fecha__lte'] = fecha_fin
 
-    # Otros filtros
     if rut:
         filtros['visitante__rut__icontains'] = rut
     if tipo_visita_id:
@@ -183,7 +193,6 @@ def generar_informe(request):
 
     visitas_qs = Visita.objects.filter(**filtros).order_by('fecha')
 
-    # Exportar Excel o PDF si corresponde
     if formato in ['excel', 'pdf']:
         exportar = True
         data_export = [{
@@ -200,37 +209,130 @@ def generar_informe(request):
 
         if formato == 'excel':
             df = pd.DataFrame(data_export)
-            response = HttpResponse(content_type='application/vnd.ms-excel')
-            response['Content-Disposition'] = 'attachment; filename="informe_visitas.xlsx"'
-            df.to_excel(response, index=False)
-            return response
+
+            # Formatear horas a HH:MM
+            df['Hora Entrada'] = df['Hora Entrada'].apply(lambda x: x.strftime('%H:%M') if pd.notnull(x) and x != '-' else '-')
+            df['Hora Salida'] = df['Hora Salida'].apply(lambda x: x.strftime('%H:%M') if pd.notnull(x) and x != '-' else '-')
+
+
+            with BytesIO() as b:
+                with pd.ExcelWriter(b, engine='openpyxl') as writer:
+                    df.to_excel(writer, index=False, sheet_name='Visitas')
+                    worksheet = writer.sheets['Visitas']
+
+                    # Autoajustar ancho de columnas
+                    for column_cells in worksheet.columns:
+                        max_length = 0
+                        column = column_cells[0].column_letter
+                        for cell in column_cells:
+                            try:
+                                if cell.value:
+                                    max_length = max(max_length, len(str(cell.value)))
+                            except:
+                                pass
+                        adjusted_width = max_length + 2
+                        worksheet.column_dimensions[column].width = adjusted_width
+
+                response = HttpResponse(
+                    content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                )
+                response['Content-Disposition'] = 'attachment; filename="informe_visitas.xlsx"'
+                response.write(b.getvalue())
+                return response
 
         elif formato == 'pdf':
             response = HttpResponse(content_type='application/pdf')
             response['Content-Disposition'] = 'attachment; filename="informe_visitas.pdf"'
-            doc = SimpleDocTemplate(response, pagesize=letter)
-            table_data = [['Visitante', 'RUT', 'Tipo Visita', 'Empresa', 'Colaborador', 'Ubicación', 'Fecha', 'Hora Entrada', 'Hora Salida']]
-            table_data.extend([list(d.values()) for d in data_export])
-            table = Table(table_data)
+
+            from reportlab.lib.pagesizes import letter, landscape
+            from reportlab.platypus import Paragraph, Spacer, SimpleDocTemplate, Table, TableStyle
+            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+            from reportlab.lib.enums import TA_CENTER, TA_LEFT
+            from reportlab.lib import colors
+            from reportlab.lib.units import cm
+
+            doc = SimpleDocTemplate(
+                response,
+                pagesize=landscape(letter),
+                leftMargin=30,
+                rightMargin=30,
+                topMargin=40,
+                bottomMargin=30
+            )
+
+            styles = getSampleStyleSheet()
+            styles.add(ParagraphStyle(name='CenterTitle', alignment=TA_CENTER, fontSize=16, spaceAfter=12, fontName="Helvetica-Bold"))
+            styles.add(ParagraphStyle(name='TableCell', alignment=TA_LEFT, fontSize=10, spaceAfter=4))
+            styles.add(ParagraphStyle(name='HeaderCell', alignment=TA_CENTER, fontSize=11, fontName="Helvetica-Bold", textColor=colors.white))
+
+            elements = []
+
+            # Título
+            elements.append(Paragraph("Informe de Visitas", styles['CenterTitle']))
+            elements.append(Spacer(1, 12))
+
+            # Encabezados
+            encabezados = ['Visitante', 'RUT', 'Tipo Visita', 'Colaborador', 'Ubicación', 'Fecha', 'Horario']
+            tabla_data = [[Paragraph(h, styles['HeaderCell']) for h in encabezados]]
+
+            # Filas de datos
+            for v in visitas_qs:
+                visitante = f"{v.visitante.nombre} {v.visitante.apellido1} {v.visitante.apellido2}"
+                colaborador = v.colaborador.nombre if v.colaborador else '-'
+                horario = '-'
+                if v.hora_entrada:
+                    hora_entrada = v.hora_entrada.strftime('%H:%M')
+                    hora_salida = v.hora_salida.strftime('%H:%M') if v.hora_salida else '-'
+                    horario = f"{hora_entrada} - {hora_salida}"
+
+                fecha_formateada = v.fecha.strftime('%d-%m-%Y')  # Formato Día-Mes-Año
+
+                fila = [
+                    Paragraph(visitante, styles['TableCell']),
+                    Paragraph(v.visitante.rut, styles['TableCell']),
+                    Paragraph(v.tipo_visita.nombre, styles['TableCell']),
+                    Paragraph(colaborador, styles['TableCell']),
+                    Paragraph(v.ubicacion.nombre if v.ubicacion else '-', styles['TableCell']),
+                    Paragraph(fecha_formateada, styles['TableCell']),
+                    Paragraph(horario, styles['TableCell'])
+                ]
+                tabla_data.append(fila)
+
+            # Anchos personalizados
+            col_widths = [4.5*cm, 3*cm, 3*cm, 5*cm, 3.5*cm, 3*cm, 4*cm]
+
+            table = Table(tabla_data, repeatRows=1, colWidths=col_widths)
+
             table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4F81BD')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 14),
-                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-                ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-                ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                ('FONTSIZE', (0, 0), (-1, 0), 11),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+
+                ('BACKGROUND', (0, 1), (-1, -1), colors.whitesmoke),
+                ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
+                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 1), (-1, -1), 10),
+
+                ('ALIGN', (0, 1), (-1, -1), 'LEFT'),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
             ]))
-            doc.build([table])
+
+            elements.append(table)
+            doc.build(elements)
             return response
 
-    # Paginación
-    paginator = Paginator(visitas_qs, 10)  # 10 visitas por página
+
+
+
+
+    paginator = Paginator(visitas_qs, 10)
     page_number = request.GET.get('page')
     visitas = paginator.get_page(page_number)
 
-    # Filtros actuales (para mantener en la paginación)
     filtros_actuales = request.GET.copy()
     filtros_actuales.pop('page', None)
     filtros_actuales.pop('formato', None)

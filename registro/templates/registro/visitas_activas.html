@@ -5,55 +5,61 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Visitas Activas</title>
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <!-- Opcional: agrega Bootstrap si lo estás usando -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
-    <div class="container">
-        <h2>Visitas Activas</h2>
+    <div class="container mt-5">
+        <h2 class="mb-4 text-center">Visitas Activas</h2>
+
         {% if visitas %}
-            <table>
-                <tr>
-                    <th>Visitante</th>
-                    <th>RUT</th>
-                    <th>Tipo Visita</th>
-                    <th>Empresa</th>
-                    <th>Colaborador</th>
-                    <th>Ubicación</th>
-                    <th>Fecha</th>
-                    <th>Hora Entrada</th>
-                    <th>Acción</th>
-                </tr>
-                {% for visita in visitas %}
+            <table class="table table-bordered table-striped">
+                <thead class="table-dark">
                     <tr>
-                        <td>{{ visita.visitante.nombre }} {{ visita.visitante.apellido1 }} {{ visita.visitante.apellido2 }}</td>
-                        <td>{{ visita.visitante.rut }}</td>
-                        <td>{{ visita.tipo_visita.nombre }}</td>
-                        <td>{{ visita.empresa.nombre|default:'-' }}</td>
-                        <td>{{ visita.colaborador.nombre|default:'-' }} {% if visita.colaborador %}({{ visita.colaborador.rut }}){% endif %}</td>
-                        <td>{{ visita.ubicacion.nombre|default:'-' }}</td>
-                        <td>{{ visita.fecha|date:"d/m/Y" }}</td>
-                        <td>{{ visita.hora_entrada|time:"H:i" }}</td>
-                        <td>
-                            <form method="post">
-                                {% csrf_token %}
-                                <input type="hidden" name="visita_id" value="{{ visita.id }}">
-                                <button type="submit">Finalizar</button>
-                            </form>
-                        </td>
+                        <th>Visitante</th>
+                        <th>RUT</th>
+                        <th>Tipo Visita</th>
+                        <th>Empresa</th>
+                        <th>Colaborador</th>
+                        <th>Ubicación</th>
+                        <th>Fecha</th>
+                        <th>Hora Entrada</th>
+                        <th>Acción</th>
                     </tr>
-                {% endfor %}
+                </thead>
+                <tbody>
+                    {% for visita in visitas %}
+                        <tr>
+                            <td>{{ visita.visitante.nombre }} {{ visita.visitante.apellido1 }} {{ visita.visitante.apellido2 }}</td>
+                            <td>{{ visita.visitante.rut }}</td>
+                            <td>{{ visita.tipo_visita.nombre }}</td>
+                            <td>{{ visita.empresa.nombre|default:"-" }}</td>
+                            <td>{{ visita.colaborador.nombre|default:"-" }} {% if visita.colaborador %}({{ visita.colaborador.rut }}){% endif %}</td>
+                            <td>{{ visita.ubicacion.nombre|default:"-" }}</td>
+                            <td>{{ visita.fecha|date:"d/m/Y" }}</td>
+                            <td>{{ visita.hora_entrada|time:"H:i" }}</td>
+                            <td>
+                                <form method="post">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="visita_id" value="{{ visita.id }}">
+                                    <button type="submit" class="btn btn-sm btn-danger">Finalizar</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
             </table>
         {% else %}
-            <div class="form-container">
-                <table>
-                    <tr>
-                        <th>Mensaje</th>
-                        <td>No hay visitas activas.</td>
-                    </tr>
-                </table>
+            <div class="alert alert-info text-center p-5 mt-4" style="border-radius: 12px; background-color: #f8f9fa; border: 1px solid #cce5ff;">
+                <img src="{% static 'img/empty-folder.svg' %}" alt="Sin visitas activas" style="width: 80px; margin-bottom: 1rem;">
+                <h4 class="alert-heading">Sin visitas activas</h4>
+                <p class="mb-0">Actualmente no hay registros de visitas activas en el sistema. Cuando se registre una nueva visita, aparecerá aquí automáticamente.</p>
             </div>
         {% endif %}
-        <p><a href="{% url 'index' %}" class="btn">Regresar</a></p>
+
+        <div class="text-center mt-4">
+            <a href="{% url 'index' %}" class="btn btn-secondary">Regresar</a>
+        </div>
     </div>
 </body>
 </html>
